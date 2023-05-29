@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="f30XIE" name="SampleBasedSynth" projectType="guiapp" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+  <MAINGROUP id="QfNe4P" name="SampleBasedSynth">
+    <GROUP id="{28A0E10E-529D-6DD0-CBB6-2336AAEC7C84}" name="Source">
+      <FILE id="r82pNb" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+      <FILE id="LiLluq" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
+      <FILE id="T3GiSc" name="MainComponent.cpp" compile="1" resource="0"
+            file="Source/MainComponent.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <EXPORTFORMATS>
+    <VS2022 targetFolder="Builds/VisualStudio2022">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="SampleBasedSynth"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="SampleBasedSynth"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_core" path="../../Users/Marvin/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../Users/Marvin/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../Users/Marvin/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../Users/Marvin/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../Users/Marvin/Documents/JUCE/modules"/>
+      </MODULEPATHS>
+    </VS2022>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+</JUCERPROJECT>
