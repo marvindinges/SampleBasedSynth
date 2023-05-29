@@ -54,7 +54,17 @@ public:
 
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
-    void setStateInformation (const void* data, int sizeInBytes) override;
+    void setStateInformation(const void* data, int sizeInBytes) override;
+    
+#pragma region Parameters
+    // 
+    static juce::AudioProcessorValueTreeState::ParameterLayout
+        createParameterLayout();
+    juce::AudioProcessorValueTreeState params {*this, nullptr,
+        "Parameters", createParameterLayout()};
+
+#pragma endregion Parameters
+
 
 private:
     //==============================================================================
