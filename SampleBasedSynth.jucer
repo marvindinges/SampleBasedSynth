@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="B46sJU" name="SampleBasedSynth" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
+              cppLanguageStandard="20" pluginVST3Category="Instrument,Sampler,Synth"
+              defines="JUCE_MODAL_LOOPS_PERMITTED=1">
   <MAINGROUP id="TqsQ50" name="SampleBasedSynth">
     <GROUP id="{6DBDF716-4695-C347-E7BD-5790CC1DD13F}" name="Source">
       <FILE id="v4wBPp" name="PluginProcessor.cpp" compile="1" resource="0"

@@ -1,4 +1,5 @@
 /*
+                SAMPLE FUSER SYNTH / Fusion Sampler
   ==============================================================================
 
     This file contains the basic framework code for a JUCE plugin processor.
@@ -22,10 +23,22 @@ SampleBasedSynthAudioProcessor::SampleBasedSynthAudioProcessor()
                        )
 #endif
 {
+#pragma region Constructer
+
+    formatManger.registerBasicFormats();
+
+    for (int i = 0; i < numberOfVoices; i++)
+    {
+        mySampler.addVoice(new juce::SamplerVoice());
+    }
+
+#pragma endregion
+
 }
 
 SampleBasedSynthAudioProcessor::~SampleBasedSynthAudioProcessor()
 {
+    formatReader = nullptr;
 }
 
 //==============================================================================
@@ -95,6 +108,7 @@ void SampleBasedSynthAudioProcessor::prepareToPlay (double sampleRate, int sampl
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    mySampler.setCurrentPlaybackSampleRate(sampleRate);
 }
 
 void SampleBasedSynthAudioProcessor::releaseResources()
@@ -150,12 +164,14 @@ void SampleBasedSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-
+    //for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    //{
+    //    auto* channelData = buffer.getWritePointer (channel);
+    //
         // ..do something to the data...
-    }
+    //}
+
+    mySampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 }
 
 //==============================================================================
@@ -167,6 +183,7 @@ bool SampleBasedSynthAudioProcessor::hasEditor() const
 juce::AudioProcessorEditor* SampleBasedSynthAudioProcessor::createEditor()
 {
     return new SampleBasedSynthAudioProcessorEditor (*this);
+    //return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -188,4 +205,140 @@ void SampleBasedSynthAudioProcessor::setStateInformation (const void* data, int 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new SampleBasedSynthAudioProcessor();
+}
+
+//Parameters
+juce::AudioProcessorValueTreeState::ParameterLayout
+SampleBasedSynthAudioProcessor::createParameterLayout()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    //Sample & Merge Algorithm Parameters
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Gain Sample 1", "Gain Sample 1",
+                                                            juce::NormalisableRange<float>(-12.0f, 12.0f, 0.1f, 1.0f), // min, max, interval, skew
+                                                            0.0f)); // Default
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Gain Sample 2", "Gain Sample 2",
+                                                            juce::NormalisableRange<float>(-12.0f, 12.0f, 0.1f, 1.0f), 
+                                                            0.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterInt>("Sections", "Sections",
+                                                            7,35, 
+                                                            21));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Interval", "Interval",
+                                                            juce::NormalisableRange<float>(0.05f, 3.0f, 0.05f, 1.0f), 
+                                                            0.5f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Cut", "Cut",
+                                                            juce::NormalisableRange<float>(-48.0f, 0.0f, 0.1f, 1.0f), 
+                                                            -24.0f));
+    //Filter Parameters
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq", "LowCut Freq",
+                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 1.0f), 
+                                                            20.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LowQ", "LowQ",
+                                                            juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f, 1.0f), 
+                                                            1.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq",
+                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 1.0f), 
+                                                            20000.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("HighQ", "HighQ",
+                                                            juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f, 1.0f), 
+                                                            1.0f));
+
+    juce::StringArray slopeStringArray;
+    for (int i = 0; i < 7; i++)
+    {
+        juce::String str;
+        str << (12 + i * 6);
+        str << " db/Oct";
+        slopeStringArray.add(str);
+    }
+
+    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCut Slope", "LowCut Slope", slopeStringArray, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", slopeStringArray, 0));
+
+    //Envelope Parameters
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Attack", "Attack",
+                                                            juce::NormalisableRange<float>(0.1f, 7000.0f, 0.01f, 1.0f), 
+                                                            0.1f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay",
+                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 1.0f), 
+                                                            1.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Sustain", "Sustain",
+                                                            juce::NormalisableRange<float>(-48.0f, 0.0f, 0.1, 1.0f), 
+                                                            -6.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Relase", "Relase",
+                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 1.0f), 
+                                                            1.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterInt>("Slope", "Slope",
+                                                            -100, 100, 
+                                                            0));
+    //Effect Parameters
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Dirt", "Dirt",
+                                                            juce::NormalisableRange<float>(0.0f, 10.0f, 0.1f, 1.0f), 
+                                                            0.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Rate", "Rate",
+                                                            juce::NormalisableRange<float>(0.05f, 15.0f, 0.01f, 1.0f), 
+                                                            1.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterInt>("Depth", "Depth",
+                                                            0, 100, 
+                                                            50));
+
+    juce::StringArray modType;
+    modType.add("Chorus");
+    modType.add("Phaser");
+    modType.add("Flanger");
+
+    layout.add(std::make_unique<juce::AudioParameterChoice>("Mod Type", "Mod Type", modType, 0));
+    //Modulators (TO DO)
+    //Output Gain
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Gain", "Gain",
+                                                            juce::NormalisableRange<float>(-48.0f, 6.0f, 0.1f, 1.0f), 
+                                                            0.0f));
+   
+
+ 
+    return layout;
+}
+
+//LoadSamples
+void SampleBasedSynthAudioProcessor::loadSample()
+{
+    mySampler.clearSounds();
+
+    juce::FileChooser fc { "Load Sample" };
+
+    if (fc.browseForFileToOpen())
+    {
+        auto file = fc.getResult();
+        formatReader = formatManger.createReaderFor(file);
+    }
+
+    juce::BigInteger range;
+    range.setRange(0, 128, true);
+
+    mySampler.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
+}
+
+void SampleBasedSynthAudioProcessor::loadSample(const juce::String& path)
+{
+    mySampler.clearSounds();
+
+    auto file = juce::File(path);
+    formatReader = formatManger.createReaderFor(file);
+
+    juce::BigInteger range;
+    range.setRange(0, 128, true);
+
+    mySampler.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
 }
