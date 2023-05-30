@@ -58,15 +58,22 @@ public:
     
 #pragma region Parameters
     // 
-    static juce::AudioProcessorValueTreeState::ParameterLayout
-        createParameterLayout();
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
     juce::AudioProcessorValueTreeState params {*this, nullptr,
         "Parameters", createParameterLayout()};
 
-#pragma endregion Parameters
+#pragma endregion
 
+    void loadSample();
+    void loadSample(const juce::String& path);
 
 private:
+    juce::Synthesiser mySampler;
+    const int numberOfVoices{ 8 };
+
+    juce::AudioFormatManager formatManger;
+    juce::AudioFormatReader* formatReader { nullptr };
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SampleBasedSynthAudioProcessor)
 };
