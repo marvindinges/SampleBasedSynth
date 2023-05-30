@@ -65,12 +65,14 @@ public:
 
 #pragma endregion
 
-    void loadSample();
-    void loadSample(const juce::String& path);
+    void loadSampleOne(const juce::String& path);
+    void loadSampleTwo(const juce::String& path);
+
 
 private:
-    juce::Synthesiser mySampler;
-    const int numberOfVoices{ 8 };
+    juce::Synthesiser mySamplerOne;
+    juce::Synthesiser mySamplerTwo;
+    const int numberOfVoices{ 4 };
 
     juce::AudioFormatManager formatManger;
     juce::AudioFormatReader* formatReader { nullptr };
