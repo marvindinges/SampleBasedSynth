@@ -29,8 +29,28 @@ public:
     void filesDropped(const juce::StringArray& files, int x, int y) override;
 
 private:
-    juce::TextButton loadSampleOneButton{ "Load" };
-    juce::TextButton loadSampleTwoButton{ "Load" };
+    juce::Rectangle<float> sampleRec;
+    juce::Rectangle<float> outputRec;
+    juce::Rectangle<float> filterRec;
+    juce::Rectangle<float> envelopeRec;
+    juce::Rectangle<float> modRec;
+    juce::Rectangle<float> effectRec;
+    juce::Rectangle<float> zoneOne;
+    juce::Rectangle<float> zoneTwo;
+
+
+    std::vector<float> pointsOneLeft;
+    std::vector<float> pointsOneRight;
+
+    std::vector<float> pointsTwoLeft;
+    std::vector<float> pointsTwoRight;
+
+    bool loadedSampleOne{ false };
+    bool loadedSampleTwo{ false };
+
+    juce::TextButton LoopSampleOne{ "Loop" };
+    juce::TextButton LoopSampleTwo{ "Loop" };
+
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     SampleBasedSynthAudioProcessor& audioProcessor;

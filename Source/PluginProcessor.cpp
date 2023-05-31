@@ -29,7 +29,8 @@ SampleBasedSynthAudioProcessor::SampleBasedSynthAudioProcessor()
 
     for (int i = 0; i < numberOfVoices; i++)
     {
-        mySampler.addVoice(new juce::SamplerVoice());
+        mySamplerOne.addVoice(new juce::SamplerVoice());
+        mySamplerTwo.addVoice(new juce::SamplerVoice());
     }
 
 #pragma endregion
@@ -108,7 +109,8 @@ void SampleBasedSynthAudioProcessor::prepareToPlay (double sampleRate, int sampl
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    mySampler.setCurrentPlaybackSampleRate(sampleRate);
+    mySamplerOne.setCurrentPlaybackSampleRate(sampleRate);
+    mySamplerTwo.setCurrentPlaybackSampleRate(sampleRate);
 }
 
 void SampleBasedSynthAudioProcessor::releaseResources()
@@ -171,7 +173,8 @@ void SampleBasedSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
         // ..do something to the data...
     //}
 
-    mySampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    mySamplerOne.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    mySamplerTwo.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 }
 
 //==============================================================================
@@ -250,10 +253,10 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
                                                             1.0f));
 
     juce::StringArray slopeStringArray;
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 4; i++)
     {
         juce::String str;
-        str << (12 + i * 6);
+        str << (12 + i * 12);
         str << " db/Oct";
         slopeStringArray.add(str);
     }
@@ -295,12 +298,14 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
                                                             50));
 
     juce::StringArray modType;
+    modType.add("Vibrato");
     modType.add("Chorus");
     modType.add("Phaser");
     modType.add("Flanger");
 
     layout.add(std::make_unique<juce::AudioParameterChoice>("Mod Type", "Mod Type", modType, 0));
     //Modulators (TO DO)
+    // 
     //Output Gain
     layout.add(std::make_unique<juce::AudioParameterFloat>("Gain", "Gain",
                                                             juce::NormalisableRange<float>(-48.0f, 6.0f, 0.1f, 1.0f), 
@@ -312,33 +317,51 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
 }
 
 //LoadSamples
-void SampleBasedSynthAudioProcessor::loadSample()
+void SampleBasedSynthAudioProcessor::loadSampleOne(const juce::String& path)
 {
-    mySampler.clearSounds();
-
-    juce::FileChooser fc { "Load Sample" };
-
-    if (fc.browseForFileToOpen())
-    {
-        auto file = fc.getResult();
-        formatReader = formatManger.createReaderFor(file);
-    }
-
-    juce::BigInteger range;
-    range.setRange(0, 128, true);
-
-    mySampler.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
-}
-
-void SampleBasedSynthAudioProcessor::loadSample(const juce::String& path)
-{
-    mySampler.clearSounds();
+    mySamplerOne.clearSounds();
 
     auto file = juce::File(path);
-    formatReader = formatManger.createReaderFor(file);
+    formatReader.reset(formatManger.createReaderFor(file));
+
+    auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
+
+    sampleBufferOne.setSize(2, sampleLength);
+    formatReader->read(&sampleBufferOne, 0, sampleLength, 0, true, true);
+
+    auto bufferLeft = sampleBufferOne.getReadPointer(0);
+    auto bufferRight = sampleBufferOne.getReadPointer(1);
+
+
+    for (int i = 0; i < sampleBufferOne.getNumSamples(); ++i)
+    {
+        //DBG("Left: " << bufferLeft[i] << " Right: " << bufferRight[i]);
+    }
+    
+    juce::BigInteger range;
+    range.setRange(0, 128, true);
+
+    mySamplerOne.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
+}
+
+void SampleBasedSynthAudioProcessor::loadSampleTwo(const juce::String& path)
+{
+    mySamplerTwo.clearSounds();
+
+    auto file = juce::File(path);
+    formatReader.reset(formatManger.createReaderFor(file));
+
+    auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
+
+    sampleBufferTwo.setSize(2, sampleLength);
+    formatReader->read(&sampleBufferTwo, 0, sampleLength, 0, true, true);
+
+    auto bufferLeft = sampleBufferTwo.getReadPointer(0);
+    auto bufferRight = sampleBufferTwo.getReadPointer(1);
+
 
     juce::BigInteger range;
     range.setRange(0, 128, true);
 
-    mySampler.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
+    mySamplerTwo.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
 }
