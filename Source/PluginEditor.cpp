@@ -18,7 +18,11 @@ SampleBasedSynthAudioProcessorEditor::SampleBasedSynthAudioProcessorEditor (Samp
     // 
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
+    addAndMakeVisible(levelMeterLeft);
+    addAndMakeVisible(levelMeterRight);
+
     setSize (1500, 750);
+    startTimerHz(24);
 }
 
 SampleBasedSynthAudioProcessorEditor::~SampleBasedSynthAudioProcessorEditor()
@@ -66,7 +70,13 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
     if (!loadedSampleOne) { g.drawFittedText("Drag&Drop Sample", sampleOneBackground.getSmallestIntegerContainer(), juce::Justification::centred, 1); }
     if (!loadedSampleTwo) { g.drawFittedText("Drag&Drop Sample", sampleTwoBackground.getSmallestIntegerContainer(), juce::Justification::centred, 1); }
 
+    levelMeterLeft.setBounds(outputRec.getX() + 5, outputRec.getY() + 5, (outputRec.getWidth() / 2) - 10, getHeight() * 0.80 - 20);
+    levelMeterRight.setBounds(outputRec.getX() + 5 + outputRec.getWidth() / 2, outputRec.getY() + 5, outputRec.getWidth() / 2 - 10, getHeight() * 0.80 - 20);
 
+    //juce::Path p;
+    //p.addEllipse(outputRec.getCentreX(), outputRec.getCentreY() + outputRec.getHeight() * 0.25f, 50, 50);
+    //g.setColour(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+    //g.fillPath(p);
 
 #pragma endregion
     
@@ -149,9 +159,7 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
         g.strokePath(pRight, juce::PathStrokeType(2));
     }
 #pragma endregion
-
-   
-    
+ 
 }
 
 void SampleBasedSynthAudioProcessorEditor::resized()
@@ -160,6 +168,8 @@ void SampleBasedSynthAudioProcessorEditor::resized()
     // subcomponents in your editor..
 
     //loadSampleOneButton.setBounds(10, 10, 50, 50);
+    //levelMeterLeft.setBounds(outputRec.getX(), outputRec.getY(), outputRec.getWidth() / 2, outputRec.getHeight());
+    //levelMeterRight.setBounds(outputRec.getX() + outputRec.getWidth() / 2, outputRec.getY(), outputRec.getWidth() / 2, outputRec.getHeight());
 }
 
 bool SampleBasedSynthAudioProcessorEditor::isInterestedInFileDrag(const juce::StringArray& files)
@@ -193,4 +203,13 @@ void SampleBasedSynthAudioProcessorEditor::filesDropped(const juce::StringArray&
         }
     }
     repaint();
+}
+
+void SampleBasedSynthAudioProcessorEditor::timerCallback()
+{
+    levelMeterLeft.setLevel(audioProcessor.getRmsValueLeft());
+    levelMeterRight.setLevel(audioProcessor.getRmsValueRight());
+    levelMeterLeft.repaint();
+    levelMeterRight.repaint();
+
 }

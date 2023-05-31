@@ -10,12 +10,14 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "LevelMeter.h"
 
 //==============================================================================
 /**
 */
-class SampleBasedSynthAudioProcessorEditor  : public juce::AudioProcessorEditor,
-                                              public juce::FileDragAndDropTarget
+class SampleBasedSynthAudioProcessorEditor : public juce::AudioProcessorEditor,
+                                                public juce::FileDragAndDropTarget,
+                                                public juce::Timer
 {
 public:
     SampleBasedSynthAudioProcessorEditor (SampleBasedSynthAudioProcessor&);
@@ -28,28 +30,22 @@ public:
     bool isInterestedInFileDrag(const juce::StringArray& files) override;
     void filesDropped(const juce::StringArray& files, int x, int y) override;
 
+    void timerCallback() override;
+
 private:
-    juce::Rectangle<float> sampleRec;
-    juce::Rectangle<float> outputRec;
-    juce::Rectangle<float> filterRec;
-    juce::Rectangle<float> envelopeRec;
-    juce::Rectangle<float> modRec;
-    juce::Rectangle<float> effectRec;
-    juce::Rectangle<float> zoneOne;
-    juce::Rectangle<float> zoneTwo;
+    juce::Rectangle<float> sampleRec, outputRec, filterRec, envelopeRec, modRec, effectRec;
+    juce::Rectangle<float> zoneOne, zoneTwo;
 
-
-    std::vector<float> pointsOneLeft;
-    std::vector<float> pointsOneRight;
-
-    std::vector<float> pointsTwoLeft;
-    std::vector<float> pointsTwoRight;
+    std::vector<float> pointsOneLeft, pointsOneRight;
+    std::vector<float> pointsTwoLeft, pointsTwoRight;
 
     bool loadedSampleOne{ false };
     bool loadedSampleTwo{ false };
 
     juce::TextButton LoopSampleOne{ "Loop" };
     juce::TextButton LoopSampleTwo{ "Loop" };
+
+    Gui::LevelMeter levelMeterLeft, levelMeterRight;
 
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.

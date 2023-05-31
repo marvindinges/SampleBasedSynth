@@ -111,6 +111,12 @@ void SampleBasedSynthAudioProcessor::prepareToPlay (double sampleRate, int sampl
     // initialisation that you need..
     mySamplerOne.setCurrentPlaybackSampleRate(sampleRate);
     mySamplerTwo.setCurrentPlaybackSampleRate(sampleRate);
+
+    rmsLevelLeft.reset(sampleRate, 0.5);
+    rmsLevelRight.reset(sampleRate, 0.5);
+
+    rmsLevelLeft.setTargetValue(-100);
+    rmsLevelRight.setTargetValue(-100);
 }
 
 void SampleBasedSynthAudioProcessor::releaseResources()
@@ -157,24 +163,21 @@ void SampleBasedSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    //for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    //{
-    //    auto* channelData = buffer.getWritePointer (channel);
-    //
-        // ..do something to the data...
-    //}
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) { buffer.clear(i, 0, buffer.getNumSamples()); }
 
     mySamplerOne.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
     mySamplerTwo.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+
+    rmsLevelLeft.skip(buffer.getNumSamples());
+    rmsLevelRight.skip(buffer.getNumSamples());
+
+    auto value = juce::Decibels::gainToDecibels(buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
+    if (value < rmsLevelLeft.getCurrentValue()) { rmsLevelLeft.setTargetValue(value); }
+    else { rmsLevelLeft.setCurrentAndTargetValue(value); }
+
+    value = juce::Decibels::gainToDecibels(buffer.getRMSLevel(1, 0, buffer.getNumSamples()));
+    if (value < rmsLevelRight.getCurrentValue()) { rmsLevelRight.setTargetValue(value); }
+    else { rmsLevelRight.setCurrentAndTargetValue(value); }
 }
 
 //==============================================================================
@@ -331,12 +334,6 @@ void SampleBasedSynthAudioProcessor::loadSampleOne(const juce::String& path)
 
     auto bufferLeft = sampleBufferOne.getReadPointer(0);
     auto bufferRight = sampleBufferOne.getReadPointer(1);
-
-
-    for (int i = 0; i < sampleBufferOne.getNumSamples(); ++i)
-    {
-        //DBG("Left: " << bufferLeft[i] << " Right: " << bufferRight[i]);
-    }
     
     juce::BigInteger range;
     range.setRange(0, 128, true);
@@ -358,7 +355,6 @@ void SampleBasedSynthAudioProcessor::loadSampleTwo(const juce::String& path)
 
     auto bufferLeft = sampleBufferTwo.getReadPointer(0);
     auto bufferRight = sampleBufferTwo.getReadPointer(1);
-
 
     juce::BigInteger range;
     range.setRange(0, 128, true);
