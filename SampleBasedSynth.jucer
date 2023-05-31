@@ -14,6 +14,9 @@
             file="Source/PluginEditor.cpp"/>
       <FILE id="gB37Cv" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
     </GROUP>
+    <GROUP id="{A3166B9D-AC7F-4BA5-CBA5-0E13A41B257E}" name="Components">
+      <FILE id="dldjzH" name="LevelMeter.h" compile="0" resource="0" file="Source/LevelMeter.h"/>
+    </GROUP>
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>

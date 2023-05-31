@@ -69,17 +69,20 @@ public:
     void loadSampleOne(const juce::String& path);
     void loadSampleTwo(const juce::String& path);
 
-
     juce::AudioBuffer<float>& getMySampleBufferOne() { return sampleBufferOne; }
     juce::AudioBuffer<float>& getMySampleBufferTwo() { return sampleBufferTwo; }
 
-private:
-    juce::AudioBuffer<float> sampleBufferOne;
-    juce::AudioBuffer<float> sampleBufferTwo;
+    float getRmsValueLeft() { return rmsLevelLeft.getCurrentValue(); }
+    float getRmsValueRight() { return rmsLevelRight.getCurrentValue(); }
 
-    juce::Synthesiser mySamplerOne;
-    juce::Synthesiser mySamplerTwo;
+
+private:
+    juce::AudioBuffer<float> sampleBufferOne, sampleBufferTwo;
+
+    juce::Synthesiser mySamplerOne, mySamplerTwo;
     const int numberOfVoices{ 4 };
+
+    juce::LinearSmoothedValue<float>rmsLevelLeft, rmsLevelRight;
 
     juce::AudioFormatManager formatManger;
     std::unique_ptr<juce::AudioFormatReader> formatReader { nullptr };
