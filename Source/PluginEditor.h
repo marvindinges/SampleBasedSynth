@@ -38,6 +38,16 @@ private:
     juce::Rectangle<float> zoneOne;
     juce::Rectangle<float> zoneTwo;
 
+
+    std::vector<float> pointsOneLeft;
+    std::vector<float> pointsOneRight;
+
+    std::vector<float> pointsTwoLeft;
+    std::vector<float> pointsTwoRight;
+
+    bool loadedSampleOne{ false };
+    bool loadedSampleTwo{ false };
+
     juce::TextButton LoopSampleOne{ "Loop" };
     juce::TextButton LoopSampleTwo{ "Loop" };
 

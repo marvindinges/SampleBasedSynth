@@ -322,8 +322,22 @@ void SampleBasedSynthAudioProcessor::loadSampleOne(const juce::String& path)
     mySamplerOne.clearSounds();
 
     auto file = juce::File(path);
-    formatReader = formatManger.createReaderFor(file);
+    formatReader.reset(formatManger.createReaderFor(file));
 
+    auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
+
+    sampleBufferOne.setSize(2, sampleLength);
+    formatReader->read(&sampleBufferOne, 0, sampleLength, 0, true, true);
+
+    auto bufferLeft = sampleBufferOne.getReadPointer(0);
+    auto bufferRight = sampleBufferOne.getReadPointer(1);
+
+
+    for (int i = 0; i < sampleBufferOne.getNumSamples(); ++i)
+    {
+        //DBG("Left: " << bufferLeft[i] << " Right: " << bufferRight[i]);
+    }
+    
     juce::BigInteger range;
     range.setRange(0, 128, true);
 
@@ -335,7 +349,16 @@ void SampleBasedSynthAudioProcessor::loadSampleTwo(const juce::String& path)
     mySamplerTwo.clearSounds();
 
     auto file = juce::File(path);
-    formatReader = formatManger.createReaderFor(file);
+    formatReader.reset(formatManger.createReaderFor(file));
+
+    auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
+
+    sampleBufferTwo.setSize(2, sampleLength);
+    formatReader->read(&sampleBufferTwo, 0, sampleLength, 0, true, true);
+
+    auto bufferLeft = sampleBufferTwo.getReadPointer(0);
+    auto bufferRight = sampleBufferTwo.getReadPointer(1);
+
 
     juce::BigInteger range;
     range.setRange(0, 128, true);

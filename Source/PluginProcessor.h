@@ -55,9 +55,10 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
+
     
 #pragma region Parameters
-    // 
+  
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     juce::AudioProcessorValueTreeState params {*this, nullptr,
@@ -69,13 +70,19 @@ public:
     void loadSampleTwo(const juce::String& path);
 
 
+    juce::AudioBuffer<float>& getMySampleBufferOne() { return sampleBufferOne; }
+    juce::AudioBuffer<float>& getMySampleBufferTwo() { return sampleBufferTwo; }
+
 private:
+    juce::AudioBuffer<float> sampleBufferOne;
+    juce::AudioBuffer<float> sampleBufferTwo;
+
     juce::Synthesiser mySamplerOne;
     juce::Synthesiser mySamplerTwo;
     const int numberOfVoices{ 4 };
 
     juce::AudioFormatManager formatManger;
-    juce::AudioFormatReader* formatReader { nullptr };
+    std::unique_ptr<juce::AudioFormatReader> formatReader { nullptr };
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SampleBasedSynthAudioProcessor)
 };
