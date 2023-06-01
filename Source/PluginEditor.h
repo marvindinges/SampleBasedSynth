@@ -35,6 +35,7 @@ public:
 private:
     juce::Rectangle<float> sampleRec, outputRec, filterRec, envelopeRec, modRec, effectRec;
     juce::Rectangle<float> zoneOne, zoneTwo;
+    juce::Rectangle<float> sampleOneBackground, sampleTwoBackground;
 
     std::vector<float> pointsOneLeft, pointsOneRight;
     std::vector<float> pointsTwoLeft, pointsTwoRight;
@@ -42,11 +43,24 @@ private:
     bool loadedSampleOne{ false };
     bool loadedSampleTwo{ false };
 
-    juce::TextButton LoopSampleOne{ "Loop" };
-    juce::TextButton LoopSampleTwo{ "Loop" };
+    //juce::TextButton LoopSampleOne{ "Loop" };
+    //juce::TextButton LoopSampleTwo{ "Loop" };
 
     Gui::LevelMeter levelMeterLeft, levelMeterRight;
 
+    juce::Slider lowPassSlider, highPassSlider, lowQ_Slider, highQ_Slider;
+    juce::ComboBox slopeBox;
+
+    juce::Slider attackSlider, decaySlider, sustainSlider, relaseSlider, curveSlider;
+
+    juce::Slider masterGainSlider;
+
+
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>
+        lowPassSA, lowQ_SA, highpassSA, highQ_SA, attackSA, decaySA, sustainSA, relaseSA, curveSA, masterGainSA;
+
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
+        slopeCBA;
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     SampleBasedSynthAudioProcessor& audioProcessor;

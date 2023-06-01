@@ -239,17 +239,17 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
                                                             juce::NormalisableRange<float>(-48.0f, 0.0f, 0.1f, 1.0f), 
                                                             -24.0f));
     //Filter Parameters
-    layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq", "LowCut Freq",
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LowPass Freq", "LowPass Freq",
                                                             juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 1.0f), 
-                                                            20.0f));
+                                                            20000.0f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("LowQ", "LowQ",
                                                             juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f, 1.0f), 
                                                             1.0f));
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq",
+    layout.add(std::make_unique<juce::AudioParameterFloat>("HighPass Freq", "HighPass Freq",
                                                             juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 1.0f), 
-                                                            20000.0f));
+                                                            20.0f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighQ", "HighQ",
                                                             juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f, 1.0f), 
@@ -264,27 +264,27 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
         slopeStringArray.add(str);
     }
 
-    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCut Slope", "LowCut Slope", slopeStringArray, 0));
-    layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", slopeStringArray, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("Slope", "Slope", slopeStringArray, 0));
+    //layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", slopeStringArray, 0));
 
     //Envelope Parameters
     layout.add(std::make_unique<juce::AudioParameterFloat>("Attack", "Attack",
-                                                            juce::NormalisableRange<float>(0.1f, 7000.0f, 0.01f, 1.0f), 
+                                                            juce::NormalisableRange<float>(0.1f, 7000.0f, 0.01f, 0.5f), 
                                                             0.1f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay",
-                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 1.0f), 
+                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 0.5f),
                                                             1.0f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Sustain", "Sustain",
-                                                            juce::NormalisableRange<float>(-48.0f, 0.0f, 0.1, 1.0f), 
+                                                            juce::NormalisableRange<float>(-48.0f, 0.0f, 0.1, 5.0f),
                                                             -6.0f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Relase", "Relase",
-                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 1.0f), 
+                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 0.5f),
                                                             1.0f));
 
-    layout.add(std::make_unique<juce::AudioParameterInt>("Slope", "Slope",
+    layout.add(std::make_unique<juce::AudioParameterInt>("Curve", "Curve",
                                                             -100, 100, 
                                                             0));
     //Effect Parameters
@@ -311,7 +311,7 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
     // 
     //Output Gain
     layout.add(std::make_unique<juce::AudioParameterFloat>("Gain", "Gain",
-                                                            juce::NormalisableRange<float>(-48.0f, 6.0f, 0.1f, 1.0f), 
+                                                            juce::NormalisableRange<float>(-48.0f, 6.0f, 0.1f, 5.5f), 
                                                             0.0f));
    
 
