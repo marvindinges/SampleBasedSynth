@@ -43,8 +43,10 @@ SampleBasedSynthAudioProcessorEditor::SampleBasedSynthAudioProcessorEditor (Samp
     addAndMakeVisible(highQ_Slider);
     highQ_SA = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.params, "HighQ", highQ_Slider);
 
-    addAndMakeVisible(slopeBox);
-    slopeCBA = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "Slope", slopeBox);
+    addAndMakeVisible(lowCutSlopeBox);
+    lowCutSlopeCBA = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "LowCut Slope", lowCutSlopeBox);
+    addAndMakeVisible(highCutSlopeBox);
+    highCutSlopeCBA = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.params, "HighCut Slope", highCutSlopeBox);
 
     attackSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
     attackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 60, 20);
@@ -124,8 +126,8 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
     g.setFont(lowPassSlider.getBounds().getWidth() / 5);
 
     g.drawFittedText("LP", lowPassSlider.getBounds().withBottom(lowPassSlider.getBottom() - lowPassSlider.getTextBoxHeight()), juce::Justification::centred, 1);
-    g.drawFittedText("Q", lowQ_Slider.getBounds().withBottom(lowQ_Slider.getBottom() - lowQ_Slider.getTextBoxHeight()), juce::Justification::centred, 1);
     g.drawFittedText("HP", highPassSlider.getBounds().withBottom(highPassSlider.getBottom() - highPassSlider.getTextBoxHeight()), juce::Justification::centred, 1);
+    g.drawFittedText("Q", lowQ_Slider.getBounds().withBottom(lowQ_Slider.getBottom() - lowQ_Slider.getTextBoxHeight()), juce::Justification::centred, 1);
     g.drawFittedText("Q", highQ_Slider.getBounds().withBottom(highQ_Slider.getBottom() - highQ_Slider.getTextBoxHeight()), juce::Justification::centred, 1);
 
     g.drawFittedText("A", attackSlider.getBounds().withBottom(attackSlider.getBottom()-attackSlider.getTextBoxHeight()), juce::Justification::centred, 1);
@@ -248,10 +250,11 @@ void SampleBasedSynthAudioProcessorEditor::resized()
     sampleTwoBackground = juce::Rectangle<float>(zoneTwo.getX() + 5, zoneTwo.getY(), zoneTwo.getWidth() - 5, zoneTwo.getHeight() - 5);
 
     lowPassSlider.setBounds(filterRec.getX() + 5, filterRec.getY() + 5, filterRec.getWidth() / 2 - 10, filterRec.getHeight() * 0.40 - 20);
-    lowQ_Slider.setBounds(filterRec.getX() + 5 + filterRec.getWidth() / 2, filterRec.getY() + 5, filterRec.getWidth() / 2 - 10, filterRec.getHeight() * 0.40 - 20);
-    highPassSlider.setBounds(filterRec.getX() + 5, lowPassSlider.getBottom() + 10, filterRec.getWidth() / 2 - 10, filterRec.getHeight() * 0.40 - 20);
+    highPassSlider.setBounds(filterRec.getX() + 5 + filterRec.getWidth() / 2, filterRec.getY() + 5, filterRec.getWidth() / 2 - 10, filterRec.getHeight() * 0.40 - 20);
+    lowQ_Slider.setBounds(filterRec.getX() + 5, lowPassSlider.getBottom() + 10, filterRec.getWidth() / 2 - 10, filterRec.getHeight() * 0.40 - 20);
     highQ_Slider.setBounds(filterRec.getX() + 5 + filterRec.getWidth() / 2, lowPassSlider.getBottom() + 10, filterRec.getWidth() / 2 - 10, filterRec.getHeight() * 0.40 - 20);
-    slopeBox.setBounds(filterRec.getX() + 20, highPassSlider.getBottom() + 20, filterRec.getWidth() - 40, filterRec.getHeight() * 0.20 - 20);
+    lowCutSlopeBox.setBounds(filterRec.getX() + 20, lowQ_Slider.getBottom() + 20, filterRec.getWidth()/2 - 40, filterRec.getHeight() * 0.20 - 20);
+    highCutSlopeBox.setBounds(filterRec.getX() + 20 + filterRec.getWidth() / 2, lowQ_Slider.getBottom() + 20, filterRec.getWidth()/2 - 40, filterRec.getHeight() * 0.20 - 20);
 
     attackSlider.setBounds(envelopeRec.getX() + 5, envelopeRec.getY() + 5, envelopeRec.getWidth() / 2 - 10, envelopeRec.getHeight() * 0.40 - 20);
     decaySlider.setBounds(envelopeRec.getX() + 5 + envelopeRec.getWidth() / 2, envelopeRec.getY() + 5, envelopeRec.getWidth() / 2 - 10, envelopeRec.getHeight() * 0.40 - 20);

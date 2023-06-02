@@ -112,11 +112,32 @@ void SampleBasedSynthAudioProcessor::prepareToPlay (double sampleRate, int sampl
     mySamplerOne.setCurrentPlaybackSampleRate(sampleRate);
     mySamplerTwo.setCurrentPlaybackSampleRate(sampleRate);
 
+    processBuffer.setSize(2, samplesPerBlock);
+
     rmsLevelLeft.reset(sampleRate, 0.5);
     rmsLevelRight.reset(sampleRate, 0.5);
 
     rmsLevelLeft.setTargetValue(-100);
     rmsLevelRight.setTargetValue(-100);
+
+    juce::dsp::ProcessSpec spec;
+
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.numChannels = 1;
+    spec.sampleRate = sampleRate;
+
+    leftChain.prepare(spec);
+    rightChain.prepare(spec);
+
+    auto chainSettings = getChainSettings(params);
+
+    leftChain.prepare(spec);
+    rightChain.prepare(spec);
+
+    leftChain.get<ChainPostions::LowCut>().setMode(juce::dsp::LadderFilterMode::LPF12);
+    leftChain.get<ChainPostions::HighCut>().setMode(juce::dsp::LadderFilterMode::HPF12);
+    rightChain.get<ChainPostions::LowCut>().setMode(juce::dsp::LadderFilterMode::LPF12);
+    rightChain.get<ChainPostions::HighCut>().setMode(juce::dsp::LadderFilterMode::HPF12);
 }
 
 void SampleBasedSynthAudioProcessor::releaseResources()
@@ -163,10 +184,41 @@ void SampleBasedSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) { buffer.clear(i, 0, buffer.getNumSamples()); }
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) 
+    { 
+        buffer.clear(i, 0, buffer.getNumSamples());
+        processBuffer.clear(i, 0, processBuffer.getNumSamples());
+    }
 
-    mySamplerOne.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-    mySamplerTwo.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    auto chainSettings = getChainSettings(params);
+
+    leftChain.get<ChainPostions::LowCut>().setCutoffFrequencyHz(chainSettings.lowCutFreq);
+    leftChain.get<ChainPostions::HighCut>().setCutoffFrequencyHz(chainSettings.highCutFreq);
+    leftChain.get<ChainPostions::LowCut>().setResonance(chainSettings.lowQ);
+    leftChain.get<ChainPostions::HighCut>().setResonance(chainSettings.highQ);
+    
+    rightChain.get<ChainPostions::LowCut>().setCutoffFrequencyHz(chainSettings.lowCutFreq);
+    rightChain.get<ChainPostions::HighCut>().setCutoffFrequencyHz(chainSettings.highCutFreq);
+    rightChain.get<ChainPostions::LowCut>().setResonance(chainSettings.lowQ);
+    rightChain.get<ChainPostions::HighCut>().setResonance(chainSettings.highQ);
+
+    mySamplerOne.renderNextBlock(processBuffer, midiMessages, 0, processBuffer.getNumSamples());
+    mySamplerTwo.renderNextBlock(processBuffer, midiMessages, 0, processBuffer.getNumSamples());
+
+    
+    juce::dsp::AudioBlock<float> block(processBuffer);
+
+    auto leftBlock = block.getSingleChannelBlock(0);
+    auto rightBlock = block.getSingleChannelBlock(1);
+
+    juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+    juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+
+    leftChain.process(leftContext);
+    rightChain.process(rightContext);
+
+    buffer.addFrom(0, 0, processBuffer.getReadPointer(0), processBuffer.getNumSamples());
+    buffer.addFrom(1, 0, processBuffer.getReadPointer(1), processBuffer.getNumSamples());
 
     rmsLevelLeft.skip(buffer.getNumSamples());
     rmsLevelRight.skip(buffer.getNumSamples());
@@ -213,6 +265,20 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
     return new SampleBasedSynthAudioProcessor();
 }
 
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& params)
+{
+    ChainSettings settings;
+    
+    settings.lowCutFreq = params.getRawParameterValue("LowPass Freq")->load();
+    settings.highCutFreq = params.getRawParameterValue("HighPass Freq")->load();
+    settings.lowQ= params.getRawParameterValue("LowQ")->load();
+    settings.highQ = params.getRawParameterValue("HighQ")->load();
+    settings.lowCutSlope = params.getRawParameterValue("LowCut Slope")->load();
+    settings.highCutSlope = params.getRawParameterValue("HighCut Slope")->load();
+
+    return settings;
+}
+
 //Parameters
 juce::AudioProcessorValueTreeState::ParameterLayout
 SampleBasedSynthAudioProcessor::createParameterLayout()
@@ -240,20 +306,20 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
                                                             -24.0f));
     //Filter Parameters
     layout.add(std::make_unique<juce::AudioParameterFloat>("LowPass Freq", "LowPass Freq",
-                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 1.0f), 
+                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.25f),
                                                             20000.0f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("LowQ", "LowQ",
-                                                            juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f, 1.0f), 
-                                                            1.0f));
+                                                            juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f),
+                                                            0.0f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighPass Freq", "HighPass Freq",
-                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 1.0f), 
+                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.25f),
                                                             20.0f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighQ", "HighQ",
-                                                            juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f, 1.0f), 
-                                                            1.0f));
+                                                            juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f),
+                                                            0.0f));
 
     juce::StringArray slopeStringArray;
     for (int i = 0; i < 4; i++)
@@ -264,8 +330,8 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
         slopeStringArray.add(str);
     }
 
-    layout.add(std::make_unique<juce::AudioParameterChoice>("Slope", "Slope", slopeStringArray, 0));
-    //layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", slopeStringArray, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCut Slope", "LowCut Slope", slopeStringArray, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", slopeStringArray, 0));
 
     //Envelope Parameters
     layout.add(std::make_unique<juce::AudioParameterFloat>("Attack", "Attack",
@@ -329,11 +395,8 @@ void SampleBasedSynthAudioProcessor::loadSampleOne(const juce::String& path)
 
     auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
 
-    sampleBufferOne.setSize(2, sampleLength);
-    formatReader->read(&sampleBufferOne, 0, sampleLength, 0, true, true);
-
-    auto bufferLeft = sampleBufferOne.getReadPointer(0);
-    auto bufferRight = sampleBufferOne.getReadPointer(1);
+    fileBufferOne.setSize(2, sampleLength);
+    formatReader->read(&fileBufferOne, 0, sampleLength, 0, true, true);
     
     juce::BigInteger range;
     range.setRange(0, 128, true);
@@ -350,14 +413,13 @@ void SampleBasedSynthAudioProcessor::loadSampleTwo(const juce::String& path)
 
     auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
 
-    sampleBufferTwo.setSize(2, sampleLength);
-    formatReader->read(&sampleBufferTwo, 0, sampleLength, 0, true, true);
-
-    auto bufferLeft = sampleBufferTwo.getReadPointer(0);
-    auto bufferRight = sampleBufferTwo.getReadPointer(1);
+    fileBufferTwo.setSize(2, sampleLength);
+    formatReader->read(&fileBufferTwo, 0, sampleLength, 0, true, true);
 
     juce::BigInteger range;
     range.setRange(0, 128, true);
 
     mySamplerTwo.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
 }
+
+

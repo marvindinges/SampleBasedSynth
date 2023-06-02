@@ -49,7 +49,7 @@ private:
     Gui::LevelMeter levelMeterLeft, levelMeterRight;
 
     juce::Slider lowPassSlider, highPassSlider, lowQ_Slider, highQ_Slider;
-    juce::ComboBox slopeBox;
+    juce::ComboBox lowCutSlopeBox, highCutSlopeBox;
 
     juce::Slider attackSlider, decaySlider, sustainSlider, relaseSlider, curveSlider;
 
@@ -60,7 +60,7 @@ private:
         lowPassSA, lowQ_SA, highpassSA, highQ_SA, attackSA, decaySA, sustainSA, relaseSA, curveSA, masterGainSA;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
-        slopeCBA;
+        lowCutSlopeCBA, highCutSlopeCBA;
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     SampleBasedSynthAudioProcessor& audioProcessor;
