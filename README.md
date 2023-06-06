@@ -1,3 +1,3 @@
 # SampleBasedSynth
 
-![Alt text](relative%20path/Current Version.png?raw=true "Current Version")
+![Alt text](Current Version.png?raw=true "Current Version")
