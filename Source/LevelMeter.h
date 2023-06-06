@@ -42,11 +42,12 @@ namespace Gui
                             bounds.getTopLeft(),
                             false
             };
-            gradient.addColour(0.5, juce::Colours::yellow);
+            gradient.addColour(0.75, juce::Colours::yellow);
         }
         void setLevel(const float value) { level = value; }
     private:
         float level = -60.0f;
         juce::ColourGradient gradient;
+        //JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeter)
     };
 }

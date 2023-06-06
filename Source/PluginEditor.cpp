@@ -92,6 +92,8 @@ SampleBasedSynthAudioProcessorEditor::SampleBasedSynthAudioProcessorEditor (Samp
 
     setSize (1500, 750);
     startTimerHz(24);
+    
+    sampleLoader.addActionListener(this);
 }
 
 SampleBasedSynthAudioProcessorEditor::~SampleBasedSynthAudioProcessorEditor()
@@ -101,6 +103,7 @@ SampleBasedSynthAudioProcessorEditor::~SampleBasedSynthAudioProcessorEditor()
 //==============================================================================
 void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
 {
+
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
     g.setColour(juce::Colours::slategrey);
@@ -149,13 +152,13 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
     //g.setColour(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
     //g.fillPath(p);
 
-    
+
 #pragma region DrawWaveformOne
-    if (loadedSampleOne)
+    if (loadedSampleOne && !sampleLoader.isThreadRunning())
     {
         pointsOneLeft.clear();
         pointsOneRight.clear();
-        auto waveform = audioProcessor.getMySampleBufferOne();
+        auto waveform = fileBufferOne;
         auto ratio = waveform.getNumSamples() / (zoneOne.getWidth() - 20);
         auto bufferLeft = waveform.getReadPointer(0);
         auto bufferRight = waveform.getReadPointer(1);
@@ -191,7 +194,7 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
 #pragma endregion
 
 #pragma region DrawWaveformTwo
-    if (loadedSampleTwo)
+    if (loadedSampleTwo && !sampleLoader.isThreadRunning())
     {
         pointsTwoLeft.clear();
         pointsTwoRight.clear();
@@ -286,20 +289,21 @@ void SampleBasedSynthAudioProcessorEditor::filesDropped(const juce::StringArray&
     {
         if (isInterestedInFileDrag(file))
         {
+
             if (zoneOne.contains(x, y))
             {
-                loadedSampleOne = true;
-                audioProcessor.loadSampleOne(file);
+                sampleLoader.loadSample(file, fileBufferOne, audioProcessor.getSynthOne());
             }
-            else if (zoneTwo.contains(x, y))
+            if (zoneTwo.contains(x, y))
             {
-                loadedSampleTwo = true;
                 audioProcessor.loadSampleTwo(file);
+                loadedSampleTwo = true;   
             }
+            //break;
         }
     }
-    repaint();
 }
+
 
 void SampleBasedSynthAudioProcessorEditor::timerCallback()
 {
@@ -308,3 +312,15 @@ void SampleBasedSynthAudioProcessorEditor::timerCallback()
     levelMeterLeft.repaint();
     levelMeterRight.repaint();
 }
+
+void SampleBasedSynthAudioProcessorEditor::actionListenerCallback(const juce::String& message)
+{
+    if (message.contains("loaded sample"))
+    {
+        loadedSampleOne = true;
+        repaint();
+    }
+}
+
+
+

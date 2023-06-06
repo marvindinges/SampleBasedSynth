@@ -24,7 +24,7 @@ SampleBasedSynthAudioProcessor::SampleBasedSynthAudioProcessor()
 #endif
 {
 #pragma region Constructer
-
+    
     formatManger.registerBasicFormats();
 
     for (int i = 0; i < numberOfVoices; i++)
@@ -111,7 +111,6 @@ void SampleBasedSynthAudioProcessor::prepareToPlay (double sampleRate, int sampl
     // initialisation that you need..
     mySamplerOne.setCurrentPlaybackSampleRate(sampleRate);
     mySamplerTwo.setCurrentPlaybackSampleRate(sampleRate);
-
     processBuffer.setSize(2, samplesPerBlock);
 
     rmsLevelLeft.reset(sampleRate, 0.5);
@@ -125,11 +124,6 @@ void SampleBasedSynthAudioProcessor::prepareToPlay (double sampleRate, int sampl
     spec.maximumBlockSize = samplesPerBlock;
     spec.numChannels = 1;
     spec.sampleRate = sampleRate;
-
-    leftChain.prepare(spec);
-    rightChain.prepare(spec);
-
-    auto chainSettings = getChainSettings(params);
 
     leftChain.prepare(spec);
     rightChain.prepare(spec);
@@ -202,6 +196,7 @@ void SampleBasedSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     rightChain.get<ChainPostions::LowCut>().setResonance(chainSettings.lowQ);
     rightChain.get<ChainPostions::HighCut>().setResonance(chainSettings.highQ);
 
+    
     mySamplerOne.renderNextBlock(processBuffer, midiMessages, 0, processBuffer.getNumSamples());
     mySamplerTwo.renderNextBlock(processBuffer, midiMessages, 0, processBuffer.getNumSamples());
 
@@ -275,7 +270,7 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& params)
     settings.highQ = params.getRawParameterValue("HighQ")->load();
     settings.lowCutSlope = params.getRawParameterValue("LowCut Slope")->load();
     settings.highCutSlope = params.getRawParameterValue("HighCut Slope")->load();
-
+    
     return settings;
 }
 
@@ -380,45 +375,85 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
                                                             juce::NormalisableRange<float>(-48.0f, 6.0f, 0.1f, 5.5f), 
                                                             0.0f));
    
-
  
     return layout;
 }
 
 //LoadSamples
-void SampleBasedSynthAudioProcessor::loadSampleOne(const juce::String& path)
+void SampleBasedSynthAudioProcessor::loadSample(const juce::String& path, juce::AudioBuffer<float>& b, juce::Synthesiser& s)
 {
-    mySamplerOne.clearSounds();
+    //DBG("SampleLoader: " << juce::Thread::getThreadName(););
 
     auto file = juce::File(path);
     formatReader.reset(formatManger.createReaderFor(file));
 
     auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
 
-    fileBufferOne.setSize(2, sampleLength);
-    formatReader->read(&fileBufferOne, 0, sampleLength, 0, true, true);
-    
+    b.setSize(2, sampleLength);
+    formatReader->read(&b, 0, sampleLength, 0, true, true);
+    //pre-processing
+    //juce::Thread::sleep(5000);
+
+    file = ("D:/test.wav");
+    file.deleteFile();
+    juce::WavAudioFormat format;
+    std::unique_ptr<juce::AudioFormatWriter> writer;
+
+    writer.reset(format.createWriterFor(new juce::FileOutputStream(file),
+        44100,
+        b.getNumChannels(),
+        24,
+        {},
+        0));
+
+    if (writer != nullptr)
+        writer->writeFromAudioSampleBuffer(b, 0, b.getNumSamples());
+
     juce::BigInteger range;
     range.setRange(0, 128, true);
 
-    mySamplerOne.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
+    formatReader.reset(formatManger.createReaderFor(file));
+
+    s.clearSounds();
+    s.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
 }
 
 void SampleBasedSynthAudioProcessor::loadSampleTwo(const juce::String& path)
 {
-    mySamplerTwo.clearSounds();
-
+    
     auto file = juce::File(path);
     formatReader.reset(formatManger.createReaderFor(file));
-
     auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
 
     fileBufferTwo.setSize(2, sampleLength);
     formatReader->read(&fileBufferTwo, 0, sampleLength, 0, true, true);
 
+    //TO-DO pre-proccessing
+
+    file = ("D:/test.wav");
+    file.deleteFile();
+
+    juce::WavAudioFormat format;
+    std::unique_ptr<juce::AudioFormatWriter> writer;
+
+    writer.reset(format.createWriterFor(new juce::FileOutputStream(file),
+        44100,
+        fileBufferTwo.getNumChannels(),
+        24,
+        {},
+        0));
+
+    if (writer != nullptr)
+        writer->writeFromAudioSampleBuffer(fileBufferTwo, 0, fileBufferTwo.getNumSamples());
+
     juce::BigInteger range;
     range.setRange(0, 128, true);
 
+    std::unique_ptr<juce::AudioFormatReader>formatReader2;
+    formatReader2.reset(formatManger.createReaderFor(file));
+    //formatReader2->read(&fileBufferTwo, 0, sampleLength, 0, true, true);
+
+    mySamplerTwo.clearSounds();
     mySamplerTwo.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
 }
 

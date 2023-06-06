@@ -11,13 +11,15 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include "LevelMeter.h"
+#include "SampleLoader.h"
 
 //==============================================================================
 /**
 */
 class SampleBasedSynthAudioProcessorEditor : public juce::AudioProcessorEditor,
-                                                public juce::FileDragAndDropTarget,
-                                                public juce::Timer
+    public juce::FileDragAndDropTarget,
+    public juce::Timer,
+    public juce::ActionListener
 {
 public:
     SampleBasedSynthAudioProcessorEditor (SampleBasedSynthAudioProcessor&);
@@ -31,11 +33,20 @@ public:
     void filesDropped(const juce::StringArray& files, int x, int y) override;
 
     void timerCallback() override;
+    void actionListenerCallback(const juce::String& message) override;
+    //void handleMessage(const juce::Message& message) override;
 
 private:
     juce::Rectangle<float> sampleRec, outputRec, filterRec, envelopeRec, modRec, effectRec;
     juce::Rectangle<float> zoneOne, zoneTwo;
     juce::Rectangle<float> sampleOneBackground, sampleTwoBackground;
+
+    std::function<void()> repaintFunction;
+   
+    SampleLoader sampleLoader;
+   
+
+    juce::AudioBuffer<float> fileBufferOne, fileBufferTwo;
 
     std::vector<float> pointsOneLeft, pointsOneRight;
     std::vector<float> pointsTwoLeft, pointsTwoRight;
@@ -61,6 +72,11 @@ private:
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
         lowCutSlopeCBA, highCutSlopeCBA;
+
+    
+
+    //juce::String path;
+    //juce::CriticalSection drawing;
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     SampleBasedSynthAudioProcessor& audioProcessor;
