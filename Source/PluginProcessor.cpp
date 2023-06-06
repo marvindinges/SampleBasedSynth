@@ -24,7 +24,7 @@ SampleBasedSynthAudioProcessor::SampleBasedSynthAudioProcessor()
 #endif
 {
 #pragma region Constructer
-
+    
     formatManger.registerBasicFormats();
 
     for (int i = 0; i < numberOfVoices; i++)
@@ -111,12 +111,27 @@ void SampleBasedSynthAudioProcessor::prepareToPlay (double sampleRate, int sampl
     // initialisation that you need..
     mySamplerOne.setCurrentPlaybackSampleRate(sampleRate);
     mySamplerTwo.setCurrentPlaybackSampleRate(sampleRate);
+    processBuffer.setSize(2, samplesPerBlock);
 
     rmsLevelLeft.reset(sampleRate, 0.5);
     rmsLevelRight.reset(sampleRate, 0.5);
 
     rmsLevelLeft.setTargetValue(-100);
     rmsLevelRight.setTargetValue(-100);
+
+    juce::dsp::ProcessSpec spec;
+
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.numChannels = 1;
+    spec.sampleRate = sampleRate;
+
+    leftChain.prepare(spec);
+    rightChain.prepare(spec);
+
+    leftChain.get<ChainPostions::LowCut>().setMode(juce::dsp::LadderFilterMode::LPF12);
+    leftChain.get<ChainPostions::HighCut>().setMode(juce::dsp::LadderFilterMode::HPF12);
+    rightChain.get<ChainPostions::LowCut>().setMode(juce::dsp::LadderFilterMode::LPF12);
+    rightChain.get<ChainPostions::HighCut>().setMode(juce::dsp::LadderFilterMode::HPF12);
 }
 
 void SampleBasedSynthAudioProcessor::releaseResources()
@@ -163,10 +178,42 @@ void SampleBasedSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) { buffer.clear(i, 0, buffer.getNumSamples()); }
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) 
+    { 
+        buffer.clear(i, 0, buffer.getNumSamples());
+        processBuffer.clear(i, 0, processBuffer.getNumSamples());
+    }
 
-    mySamplerOne.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-    mySamplerTwo.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    auto chainSettings = getChainSettings(params);
+
+    leftChain.get<ChainPostions::LowCut>().setCutoffFrequencyHz(chainSettings.lowCutFreq);
+    leftChain.get<ChainPostions::HighCut>().setCutoffFrequencyHz(chainSettings.highCutFreq);
+    leftChain.get<ChainPostions::LowCut>().setResonance(chainSettings.lowQ);
+    leftChain.get<ChainPostions::HighCut>().setResonance(chainSettings.highQ);
+    
+    rightChain.get<ChainPostions::LowCut>().setCutoffFrequencyHz(chainSettings.lowCutFreq);
+    rightChain.get<ChainPostions::HighCut>().setCutoffFrequencyHz(chainSettings.highCutFreq);
+    rightChain.get<ChainPostions::LowCut>().setResonance(chainSettings.lowQ);
+    rightChain.get<ChainPostions::HighCut>().setResonance(chainSettings.highQ);
+
+    
+    mySamplerOne.renderNextBlock(processBuffer, midiMessages, 0, processBuffer.getNumSamples());
+    mySamplerTwo.renderNextBlock(processBuffer, midiMessages, 0, processBuffer.getNumSamples());
+
+    
+    juce::dsp::AudioBlock<float> block(processBuffer);
+
+    auto leftBlock = block.getSingleChannelBlock(0);
+    auto rightBlock = block.getSingleChannelBlock(1);
+
+    juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+    juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+
+    leftChain.process(leftContext);
+    rightChain.process(rightContext);
+
+    buffer.addFrom(0, 0, processBuffer.getReadPointer(0), processBuffer.getNumSamples());
+    buffer.addFrom(1, 0, processBuffer.getReadPointer(1), processBuffer.getNumSamples());
 
     rmsLevelLeft.skip(buffer.getNumSamples());
     rmsLevelRight.skip(buffer.getNumSamples());
@@ -213,6 +260,20 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
     return new SampleBasedSynthAudioProcessor();
 }
 
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& params)
+{
+    ChainSettings settings;
+    
+    settings.lowCutFreq = params.getRawParameterValue("LowPass Freq")->load();
+    settings.highCutFreq = params.getRawParameterValue("HighPass Freq")->load();
+    settings.lowQ= params.getRawParameterValue("LowQ")->load();
+    settings.highQ = params.getRawParameterValue("HighQ")->load();
+    settings.lowCutSlope = params.getRawParameterValue("LowCut Slope")->load();
+    settings.highCutSlope = params.getRawParameterValue("HighCut Slope")->load();
+    
+    return settings;
+}
+
 //Parameters
 juce::AudioProcessorValueTreeState::ParameterLayout
 SampleBasedSynthAudioProcessor::createParameterLayout()
@@ -239,21 +300,21 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
                                                             juce::NormalisableRange<float>(-48.0f, 0.0f, 0.1f, 1.0f), 
                                                             -24.0f));
     //Filter Parameters
-    layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq", "LowCut Freq",
-                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 1.0f), 
-                                                            20.0f));
-
-    layout.add(std::make_unique<juce::AudioParameterFloat>("LowQ", "LowQ",
-                                                            juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f, 1.0f), 
-                                                            1.0f));
-
-    layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq",
-                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 1.0f), 
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LowPass Freq", "LowPass Freq",
+                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.25f),
                                                             20000.0f));
 
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LowQ", "LowQ",
+                                                            juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f),
+                                                            0.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("HighPass Freq", "HighPass Freq",
+                                                            juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.25f),
+                                                            20.0f));
+
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighQ", "HighQ",
-                                                            juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f, 1.0f), 
-                                                            1.0f));
+                                                            juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.0f),
+                                                            0.0f));
 
     juce::StringArray slopeStringArray;
     for (int i = 0; i < 4; i++)
@@ -269,22 +330,22 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
 
     //Envelope Parameters
     layout.add(std::make_unique<juce::AudioParameterFloat>("Attack", "Attack",
-                                                            juce::NormalisableRange<float>(0.1f, 7000.0f, 0.01f, 1.0f), 
+                                                            juce::NormalisableRange<float>(0.1f, 7000.0f, 0.01f, 0.5f), 
                                                             0.1f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay",
-                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 1.0f), 
+                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 0.5f),
                                                             1.0f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Sustain", "Sustain",
-                                                            juce::NormalisableRange<float>(-48.0f, 0.0f, 0.1, 1.0f), 
+                                                            juce::NormalisableRange<float>(-48.0f, 0.0f, 0.1, 5.0f),
                                                             -6.0f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Relase", "Relase",
-                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 1.0f), 
+                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 0.5f),
                                                             1.0f));
 
-    layout.add(std::make_unique<juce::AudioParameterInt>("Slope", "Slope",
+    layout.add(std::make_unique<juce::AudioParameterInt>("Curve", "Curve",
                                                             -100, 100, 
                                                             0));
     //Effect Parameters
@@ -311,53 +372,89 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
     // 
     //Output Gain
     layout.add(std::make_unique<juce::AudioParameterFloat>("Gain", "Gain",
-                                                            juce::NormalisableRange<float>(-48.0f, 6.0f, 0.1f, 1.0f), 
+                                                            juce::NormalisableRange<float>(-48.0f, 6.0f, 0.1f, 5.5f), 
                                                             0.0f));
    
-
  
     return layout;
 }
 
 //LoadSamples
-void SampleBasedSynthAudioProcessor::loadSampleOne(const juce::String& path)
+void SampleBasedSynthAudioProcessor::loadSample(const juce::String& path, juce::AudioBuffer<float>& b, juce::Synthesiser& s)
 {
-    mySamplerOne.clearSounds();
+    //DBG("SampleLoader: " << juce::Thread::getThreadName(););
 
     auto file = juce::File(path);
     formatReader.reset(formatManger.createReaderFor(file));
 
     auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
 
-    sampleBufferOne.setSize(2, sampleLength);
-    formatReader->read(&sampleBufferOne, 0, sampleLength, 0, true, true);
+    b.setSize(2, sampleLength);
+    formatReader->read(&b, 0, sampleLength, 0, true, true);
+    //pre-processing
+    //juce::Thread::sleep(5000);
 
-    auto bufferLeft = sampleBufferOne.getReadPointer(0);
-    auto bufferRight = sampleBufferOne.getReadPointer(1);
-    
+    file = ("D:/test.wav");
+    file.deleteFile();
+    juce::WavAudioFormat format;
+    std::unique_ptr<juce::AudioFormatWriter> writer;
+
+    writer.reset(format.createWriterFor(new juce::FileOutputStream(file),
+        44100,
+        b.getNumChannels(),
+        24,
+        {},
+        0));
+
+    if (writer != nullptr)
+        writer->writeFromAudioSampleBuffer(b, 0, b.getNumSamples());
+
     juce::BigInteger range;
     range.setRange(0, 128, true);
 
-    mySamplerOne.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
+    formatReader.reset(formatManger.createReaderFor(file));
+
+    s.clearSounds();
+    s.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
 }
 
 void SampleBasedSynthAudioProcessor::loadSampleTwo(const juce::String& path)
 {
-    mySamplerTwo.clearSounds();
-
+    
     auto file = juce::File(path);
     formatReader.reset(formatManger.createReaderFor(file));
-
     auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
 
-    sampleBufferTwo.setSize(2, sampleLength);
-    formatReader->read(&sampleBufferTwo, 0, sampleLength, 0, true, true);
+    fileBufferTwo.setSize(2, sampleLength);
+    formatReader->read(&fileBufferTwo, 0, sampleLength, 0, true, true);
 
-    auto bufferLeft = sampleBufferTwo.getReadPointer(0);
-    auto bufferRight = sampleBufferTwo.getReadPointer(1);
+    //TO-DO pre-proccessing
+
+    file = ("D:/test.wav");
+    file.deleteFile();
+
+    juce::WavAudioFormat format;
+    std::unique_ptr<juce::AudioFormatWriter> writer;
+
+    writer.reset(format.createWriterFor(new juce::FileOutputStream(file),
+        44100,
+        fileBufferTwo.getNumChannels(),
+        24,
+        {},
+        0));
+
+    if (writer != nullptr)
+        writer->writeFromAudioSampleBuffer(fileBufferTwo, 0, fileBufferTwo.getNumSamples());
 
     juce::BigInteger range;
     range.setRange(0, 128, true);
 
+    std::unique_ptr<juce::AudioFormatReader>formatReader2;
+    formatReader2.reset(formatManger.createReaderFor(file));
+    //formatReader2->read(&fileBufferTwo, 0, sampleLength, 0, true, true);
+
+    mySamplerTwo.clearSounds();
     mySamplerTwo.addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
 }
+
+
