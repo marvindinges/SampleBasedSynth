@@ -34,17 +34,13 @@ public:
 
     void timerCallback() override;
     void actionListenerCallback(const juce::String& message) override;
-    //void handleMessage(const juce::Message& message) override;
 
 private:
     juce::Rectangle<float> sampleRec, outputRec, filterRec, envelopeRec, modRec, effectRec;
     juce::Rectangle<float> zoneOne, zoneTwo;
     juce::Rectangle<float> sampleOneBackground, sampleTwoBackground;
-
-    std::function<void()> repaintFunction;
    
     SampleLoader sampleLoader;
-   
 
     juce::AudioBuffer<float> fileBufferOne, fileBufferTwo;
 
@@ -54,8 +50,6 @@ private:
     bool loadedSampleOne{ false };
     bool loadedSampleTwo{ false };
 
-    //juce::TextButton LoopSampleOne{ "Loop" };
-    //juce::TextButton LoopSampleTwo{ "Loop" };
 
     Gui::LevelMeter levelMeterLeft, levelMeterRight;
 
@@ -74,9 +68,6 @@ private:
         lowCutSlopeCBA, highCutSlopeCBA;
 
     
-
-    //juce::String path;
-    //juce::CriticalSection drawing;
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     SampleBasedSynthAudioProcessor& audioProcessor;
