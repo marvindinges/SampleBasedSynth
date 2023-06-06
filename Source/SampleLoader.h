@@ -69,7 +69,7 @@ public:
 
         sampler->clearSounds();
         sampler->addSound(new juce::SamplerSound("Sample", *formatReader, range, 60, 0.01, 0.1, 16.0));
-        signalThreadShouldExit();
+
         buffer.release();
         sampler.release();
     }

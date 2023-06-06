@@ -153,17 +153,17 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
     //g.fillPath(p);
 
 
-#pragma region DrawWaveformOne
+    //add lock
     if (loadedSampleOne && !sampleLoader.isThreadRunning())
     {
         pointsOneLeft.clear();
         pointsOneRight.clear();
-        auto waveform = fileBufferOne;
-        auto ratio = waveform.getNumSamples() / (zoneOne.getWidth() - 20);
-        auto bufferLeft = waveform.getReadPointer(0);
-        auto bufferRight = waveform.getReadPointer(1);
 
-        for (int i = 0; i < waveform.getNumSamples(); i += ratio)
+        auto ratio = fileBufferOne.getNumSamples() / (zoneOne.getWidth() - 20);
+        auto bufferLeft = fileBufferOne.getReadPointer(0);
+        auto bufferRight = fileBufferOne.getReadPointer(1);
+
+        for (int i = 0; i < fileBufferOne.getNumSamples(); i += ratio)
         {
             pointsOneLeft.push_back(bufferLeft[i]);
             pointsOneRight.push_back(bufferRight[i]);
@@ -191,19 +191,18 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
         g.strokePath(pLeft, juce::PathStrokeType(2));
         g.strokePath(pRight, juce::PathStrokeType(2));
     }
-#pragma endregion
 
-#pragma region DrawWaveformTwo
+
     if (loadedSampleTwo && !sampleLoader.isThreadRunning())
     {
         pointsTwoLeft.clear();
         pointsTwoRight.clear();
-        auto waveform = audioProcessor.getMySampleBufferTwo();
-        auto ratio = waveform.getNumSamples() / (zoneTwo.getWidth() - 20);
-        auto bufferLeft = waveform.getReadPointer(0);
-        auto bufferRight = waveform.getReadPointer(1);
+        
+        auto ratio = fileBufferTwo.getNumSamples() / (zoneTwo.getWidth() - 20);
+        auto bufferLeft = fileBufferTwo.getReadPointer(0);
+        auto bufferRight = fileBufferTwo.getReadPointer(1);
 
-        for (int i = 0; i < waveform.getNumSamples(); i += ratio)
+        for (int i = 0; i < fileBufferTwo.getNumSamples(); i += ratio)
         {
             pointsTwoLeft.push_back(bufferLeft[i]);
             pointsTwoRight.push_back(bufferRight[i]);
@@ -231,7 +230,7 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
         g.strokePath(pLeft, juce::PathStrokeType(2));
         g.strokePath(pRight, juce::PathStrokeType(2));
     }
-#pragma endregion
+
  
 }
 
@@ -284,22 +283,26 @@ bool SampleBasedSynthAudioProcessorEditor::isInterestedInFileDrag(const juce::St
 }
 
 void SampleBasedSynthAudioProcessorEditor::filesDropped(const juce::StringArray& files, int x, int y)
-{
-    for (auto file : files)
+{   
+    if(!sampleLoader.isThreadRunning())
     {
-        if (isInterestedInFileDrag(file))
+        for (auto file : files)
         {
-
-            if (zoneOne.contains(x, y))
+            if (isInterestedInFileDrag(file))
             {
-                sampleLoader.loadSample(file, fileBufferOne, audioProcessor.getSynthOne());
+                if (zoneOne.contains(x, y))
+                {
+                    sampleLoader.loadSample(file, fileBufferOne, audioProcessor.getSynthOne());
+                    loadedSampleOne = true;
+                    return;
+                }
+                if (zoneTwo.contains(x, y))
+                {
+                    sampleLoader.loadSample(file, fileBufferTwo, audioProcessor.getSynthTwo());
+                    loadedSampleTwo = true;
+                    return;
+                }
             }
-            if (zoneTwo.contains(x, y))
-            {
-                audioProcessor.loadSampleTwo(file);
-                loadedSampleTwo = true;   
-            }
-            //break;
         }
     }
 }
@@ -317,7 +320,6 @@ void SampleBasedSynthAudioProcessorEditor::actionListenerCallback(const juce::St
 {
     if (message.contains("loaded sample"))
     {
-        loadedSampleOne = true;
         repaint();
     }
 }
