@@ -1,3 +1,4 @@
 # SampleBasedSynth
 
-![Alt text](Current Version.png?raw=true "Current Version")
+![GUI](https://raw.githubusercontent.com/Marvin-Tate/SampleBasedSynth/master/Current%20Version.png)
+
