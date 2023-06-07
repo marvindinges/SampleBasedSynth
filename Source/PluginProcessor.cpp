@@ -103,6 +103,7 @@ void SampleBasedSynthAudioProcessor::prepareToPlay (double sampleRate, int sampl
     // initialisation that you need..
     mySamplerOne.setCurrentPlaybackSampleRate(sampleRate);
     mySamplerTwo.setCurrentPlaybackSampleRate(sampleRate);
+    
     processBuffer.setSize(2, samplesPerBlock);
 
     rmsLevelLeft.reset(sampleRate, 0.5);
@@ -128,7 +129,7 @@ void SampleBasedSynthAudioProcessor::prepareToPlay (double sampleRate, int sampl
 
     previousGain = pow(10, *params.getRawParameterValue("Gain") / 20);
 
-
+    
 }
 
 void SampleBasedSynthAudioProcessor::releaseResources()
@@ -193,6 +194,15 @@ void SampleBasedSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     rightChain.get<ChainPostions::LowCut>().setResonance(chainSettings.lowQ);
     rightChain.get<ChainPostions::HighCut>().setResonance(chainSettings.highQ);
 
+    envelopeParmetersOne.attack = chainSettings.a;
+    envelopeParmetersOne.decay = chainSettings.d;
+    envelopeParmetersOne.sustain = chainSettings.s;
+    envelopeParmetersOne.release = chainSettings.r;
+
+    envelopeParmetersTwo.attack = chainSettings.a;
+    envelopeParmetersTwo.decay = chainSettings.d;
+    envelopeParmetersTwo.sustain = chainSettings.s;
+    envelopeParmetersTwo.release = chainSettings.r;
     
     mySamplerOne.renderNextBlock(processBuffer, midiMessages, 0, processBuffer.getNumSamples());
     mySamplerTwo.renderNextBlock(processBuffer, midiMessages, 0, processBuffer.getNumSamples());
@@ -277,6 +287,10 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& params)
     settings.highQ = params.getRawParameterValue("HighQ")->load();
     settings.lowCutSlope = params.getRawParameterValue("LowCut Slope")->load();
     settings.highCutSlope = params.getRawParameterValue("HighCut Slope")->load();
+    settings.a = params.getRawParameterValue("Attack")->load();
+    settings.d = params.getRawParameterValue("Decay")->load();
+    settings.s = params.getRawParameterValue("Sustain")->load();
+    settings.r = params.getRawParameterValue("Relase")->load();
     settings.gain = params.getRawParameterValue("Gain")->load();
     
     return settings;
@@ -338,20 +352,20 @@ SampleBasedSynthAudioProcessor::createParameterLayout()
 
     //Envelope Parameters
     layout.add(std::make_unique<juce::AudioParameterFloat>("Attack", "Attack",
-                                                            juce::NormalisableRange<float>(0.1f, 7000.0f, 0.01f, 0.5f), 
-                                                            0.1f));
+                                                            juce::NormalisableRange<float>(0.0001f, 7.0f, 0.0001f, 0.5f), 
+                                                            0.0001f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Decay", "Decay",
-                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 0.5f),
-                                                            1.0f));
+                                                            juce::NormalisableRange<float>(0.001f, 7.0f, 0.001f, 0.5f),
+                                                            0.001f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Sustain", "Sustain",
-                                                            juce::NormalisableRange<float>(-48.0f, 0.0f, 0.1, 5.0f),
-                                                            -6.0f));
+                                                            juce::NormalisableRange<float>(0.0f, 1.0f, 0.01, 1.0f),
+                                                            0.5f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("Relase", "Relase",
-                                                            juce::NormalisableRange<float>(1.0f, 7000.0f, 0.1f, 0.5f),
-                                                            1.0f));
+                                                            juce::NormalisableRange<float>(0.001f, 7.0f, 0.001f, 0.5f),
+                                                            0.001f));
 
     layout.add(std::make_unique<juce::AudioParameterInt>("Curve", "Curve",
                                                             -100, 100, 

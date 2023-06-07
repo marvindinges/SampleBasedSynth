@@ -11,7 +11,7 @@
 
 //==============================================================================
 SampleBasedSynthAudioProcessorEditor::SampleBasedSynthAudioProcessorEditor (SampleBasedSynthAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+    : AudioProcessorEditor (&p), audioProcessor (p), Thread("lock holder")
 {
     getLookAndFeel().setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::white.withAlpha(0.0f));
     //loadSampleOneButton.onClick = [&]() { audioProcessor.loadSample(); };
@@ -94,6 +94,7 @@ SampleBasedSynthAudioProcessorEditor::SampleBasedSynthAudioProcessorEditor (Samp
     startTimerHz(24);
     
     sampleLoader.addActionListener(this);
+    preProcessor.addActionListener(this);
 }
 
 SampleBasedSynthAudioProcessorEditor::~SampleBasedSynthAudioProcessorEditor()
@@ -154,19 +155,23 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
 
 
     //add lock
-    if (loadedSampleOne && !sampleLoader.isThreadRunning())
+    if (loadedSampleOne && !sampleLoader.isThreadRunning() && !preProcessor.isThreadRunning())
     {
         pointsOneLeft.clear();
         pointsOneRight.clear();
 
-        auto ratio = fileBufferOne.getNumSamples() / (zoneOne.getWidth() - 20);
-        auto bufferLeft = fileBufferOne.getReadPointer(0);
-        auto bufferRight = fileBufferOne.getReadPointer(1);
-
-        for (int i = 0; i < fileBufferOne.getNumSamples(); i += ratio)
         {
-            pointsOneLeft.push_back(bufferLeft[i]);
-            pointsOneRight.push_back(bufferRight[i]);
+            const juce::GenericScopedLock<juce::CriticalSection> myScopedLockSL(sampleLoader);
+            const juce::GenericScopedLock<juce::CriticalSection> myScopedLockPP(preProcessor);
+            auto ratio = fileBufferOne.getNumSamples() / (zoneOne.getWidth() - 20);
+            auto bufferLeft = fileBufferOne.getReadPointer(0);
+            auto bufferRight = fileBufferOne.getReadPointer(1);
+
+            for (int i = 0; i < fileBufferOne.getNumSamples(); i += ratio)
+            {
+                pointsOneLeft.push_back(bufferLeft[i]);
+                pointsOneRight.push_back(bufferRight[i]);
+            }
         }
 
         juce::Path pLeft;
@@ -193,19 +198,23 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
     }
 
 
-    if (loadedSampleTwo && !sampleLoader.isThreadRunning())
+    if (loadedSampleTwo && !sampleLoader.isThreadRunning() && !preProcessor.isThreadRunning())
     {
         pointsTwoLeft.clear();
         pointsTwoRight.clear();
         
-        auto ratio = fileBufferTwo.getNumSamples() / (zoneTwo.getWidth() - 20);
-        auto bufferLeft = fileBufferTwo.getReadPointer(0);
-        auto bufferRight = fileBufferTwo.getReadPointer(1);
-
-        for (int i = 0; i < fileBufferTwo.getNumSamples(); i += ratio)
         {
-            pointsTwoLeft.push_back(bufferLeft[i]);
-            pointsTwoRight.push_back(bufferRight[i]);
+            const juce::GenericScopedLock<juce::CriticalSection> myScopedLockSL(sampleLoader);
+            const juce::GenericScopedLock<juce::CriticalSection> myScopedLockPP(preProcessor);
+            auto ratio = fileBufferTwo.getNumSamples() / (zoneTwo.getWidth() - 20);
+            auto bufferLeft = fileBufferTwo.getReadPointer(0);
+            auto bufferRight = fileBufferTwo.getReadPointer(1);
+
+            for (int i = 0; i < fileBufferTwo.getNumSamples(); i += ratio)
+            {
+                pointsTwoLeft.push_back(bufferLeft[i]);
+                pointsTwoRight.push_back(bufferRight[i]);
+            }
         }
 
         juce::Path pLeft;
@@ -284,28 +293,33 @@ bool SampleBasedSynthAudioProcessorEditor::isInterestedInFileDrag(const juce::St
 
 void SampleBasedSynthAudioProcessorEditor::filesDropped(const juce::StringArray& files, int x, int y)
 {   
-    if(!sampleLoader.isThreadRunning())
+    if (!sampleLoader.isThreadRunning() && !preProcessor.isThreadRunning())
     {
+        holdLock(sampleLoader, preProcessor);
+
         for (auto file : files)
         {
             if (isInterestedInFileDrag(file))
             {
                 if (zoneOne.contains(x, y))
                 {
-                    sampleLoader.loadSample(file, fileBufferOne, audioProcessor.getSynthOne());
-                    loadedSampleOne = true;
+                    sampleLoader.loadSample(file, fileBufferOne, "LS1");
+                    pathOne = file;
+                    // start loading animation
                     return;
                 }
                 if (zoneTwo.contains(x, y))
                 {
-                    sampleLoader.loadSample(file, fileBufferTwo, audioProcessor.getSynthTwo());
-                    loadedSampleTwo = true;
+                    sampleLoader.loadSample(file, fileBufferTwo, "LS2");
+                    pathTwo = file;
+                    // start loading animation
                     return;
                 }
             }
         }
     }
 }
+
 
 
 void SampleBasedSynthAudioProcessorEditor::timerCallback()
@@ -318,10 +332,67 @@ void SampleBasedSynthAudioProcessorEditor::timerCallback()
 
 void SampleBasedSynthAudioProcessorEditor::actionListenerCallback(const juce::String& message)
 {
-    if (message.contains("loaded sample"))
+    if (message.contains("LS"))
     {
+        if (message.contains("1"))
+        {
+            if (loadedSampleTwo)
+            {
+                holdLock(preProcessor, sampleLoader);
+                preProcessor.preProcessing(fileBufferOne, fileBufferTwo);
+            }
+            else
+            {
+                updater.updateSound(audioProcessor.getSynthOne(), audioProcessor.getEnvelopeParametesOne(), pathOne);
+                loadedSampleOne = true;
+                repaint();
+            }
+        }
+        if (message.contains("2"))
+        {
+            if (loadedSampleOne)
+            {
+                holdLock(preProcessor, sampleLoader);
+                preProcessor.preProcessing(fileBufferOne, fileBufferTwo);
+            }
+            else
+            {
+                updater.updateSound(audioProcessor.getSynthTwo(), audioProcessor.getEnvelopeParametesTwo(), pathTwo);
+                loadedSampleTwo = true;
+                repaint();
+            }
+        }
+    }
+    
+    if (message.contains("PP"))
+    {
+        // (re)start loading animation
+        updater.updateSound(audioProcessor.getSynthOne(), audioProcessor.getEnvelopeParametesOne(), pathOne);
+        updater.updateSound(audioProcessor.getSynthTwo(), audioProcessor.getEnvelopeParametesTwo(), pathTwo);
         repaint();
     }
+    
+}
+
+void SampleBasedSynthAudioProcessorEditor::run()
+{
+    {
+        const juce::GenericScopedLock<juce::CriticalSection> myScopedLock(*lockingThread.get());
+        wait(200);
+        while (runningThread->isThreadRunning())
+        {
+            wait(200);
+        }
+        runningThread.release();
+        lockingThread.release();
+    }
+}
+
+void SampleBasedSynthAudioProcessorEditor::holdLock(juce::Thread& rt, juce::CriticalSection& lt)
+{
+    runningThread.reset(&rt);
+    lockingThread.reset(&lt);
+    startThread(Priority::background);
 }
 
 

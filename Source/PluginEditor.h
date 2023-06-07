@@ -12,6 +12,9 @@
 #include "PluginProcessor.h"
 #include "LevelMeter.h"
 #include "SampleLoader.h"
+#include "PreProcessor.h"
+#include "SynthSoundUpdater.h"
+
 
 //==============================================================================
 /**
@@ -19,7 +22,8 @@
 class SampleBasedSynthAudioProcessorEditor : public juce::AudioProcessorEditor,
     public juce::FileDragAndDropTarget,
     public juce::Timer,
-    public juce::ActionListener
+    public juce::ActionListener,
+    public juce::Thread
 {
 public:
     SampleBasedSynthAudioProcessorEditor (SampleBasedSynthAudioProcessor&);
@@ -35,14 +39,21 @@ public:
     void timerCallback() override;
     void actionListenerCallback(const juce::String& message) override;
 
+    void run() override;
+    void holdLock(juce::Thread& rt, juce::CriticalSection& lt);
+
 private:
     juce::Rectangle<float> sampleRec, outputRec, filterRec, envelopeRec, modRec, effectRec;
     juce::Rectangle<float> zoneOne, zoneTwo;
     juce::Rectangle<float> sampleOneBackground, sampleTwoBackground;
    
     SampleLoader sampleLoader;
+    PreProcessor preProcessor;
+    SynthSoundUpdater updater;
 
     juce::AudioBuffer<float> fileBufferOne, fileBufferTwo;
+
+    juce::String pathOne, pathTwo; //temp will not be needed later on
 
     std::vector<float> pointsOneLeft, pointsOneRight;
     std::vector<float> pointsTwoLeft, pointsTwoRight;
@@ -68,6 +79,8 @@ private:
         lowCutSlopeCBA, highCutSlopeCBA;
 
     
+    std::unique_ptr<juce::Thread> runningThread { nullptr };
+    std::unique_ptr<juce::CriticalSection> lockingThread { nullptr };
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     SampleBasedSynthAudioProcessor& audioProcessor;

@@ -13,12 +13,13 @@
       <FILE id="xW0MjI" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
       <FILE id="gB37Cv" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <FILE id="MAbIDo" name="SampleLoader.h" compile="0" resource="0" file="Source/SampleLoader.h"/>
+      <FILE id="PGsGt6" name="PreProcessor.h" compile="0" resource="0" file="Source/PreProcessor.h"/>
+      <FILE id="M3wYAP" name="SynthSoundUpdater.h" compile="0" resource="0"
+            file="Source/SynthSoundUpdater.h"/>
     </GROUP>
     <GROUP id="{A3166B9D-AC7F-4BA5-CBA5-0E13A41B257E}" name="Components">
       <FILE id="dldjzH" name="LevelMeter.h" compile="0" resource="0" file="Source/LevelMeter.h"/>
-    </GROUP>
-    <GROUP id="{13966003-9F9D-7338-60C2-D2C018891B52}" name="Helper">
-      <FILE id="MAbIDo" name="SampleLoader.h" compile="0" resource="0" file="Source/SampleLoader.h"/>
     </GROUP>
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>

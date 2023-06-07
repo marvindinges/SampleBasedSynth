@@ -60,6 +60,9 @@ public:
     juce::Synthesiser& getSynthOne() { return mySamplerOne; }
     juce::Synthesiser& getSynthTwo() { return mySamplerTwo; }
 
+    juce::ADSR::Parameters& getEnvelopeParametesOne() { return envelopeParmetersOne; }
+    juce::ADSR::Parameters& getEnvelopeParametesTwo() { return envelopeParmetersTwo; }
+
     float getRmsValueLeft() { return rmsLevelLeft.getCurrentValue(); }
     float getRmsValueRight() { return rmsLevelRight.getCurrentValue(); }
   
@@ -73,7 +76,10 @@ private:
 
     juce::Synthesiser mySamplerOne, mySamplerTwo;
     const int numberOfVoices{ 4 };
-    
+
+    juce::ADSR::Parameters envelopeParmetersOne;
+    juce::ADSR::Parameters envelopeParmetersTwo;
+
     juce::LinearSmoothedValue<float>rmsLevelLeft, rmsLevelRight;
 
 
@@ -97,7 +103,7 @@ private:
 
 struct ChainSettings
 {
-    float lowCutFreq{ 0 }, lowQ{ 0 }, highCutFreq{ 0 }, highQ{ 0 }, gain{ 0 };
+    float lowCutFreq{ 0 }, lowQ{ 0 }, highCutFreq{ 0 }, highQ{ 0 }, a{ 0 }, d{ 0 }, s{ 0 }, r{ 0 }, gain{ 0 };
     int lowCutSlope{ 0 }, highCutSlope{ 0 };
 };
 
