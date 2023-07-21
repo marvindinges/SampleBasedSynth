@@ -13,10 +13,15 @@
       <FILE id="xW0MjI" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
       <FILE id="gB37Cv" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+    </GROUP>
+    <GROUP id="{C2184E3A-2524-FDE5-411A-821FEC7452DC}" name="Utilities">
+      <FILE id="WwDq52" name="PitchDetector.h" compile="0" resource="0" file="Source/PitchDetector.h"/>
+      <FILE id="ynAeTM" name="ThreadManager.h" compile="0" resource="0" file="Source/ThreadManager.h"/>
       <FILE id="MAbIDo" name="SampleLoader.h" compile="0" resource="0" file="Source/SampleLoader.h"/>
       <FILE id="PGsGt6" name="PreProcessor.h" compile="0" resource="0" file="Source/PreProcessor.h"/>
       <FILE id="M3wYAP" name="SynthSoundUpdater.h" compile="0" resource="0"
             file="Source/SynthSoundUpdater.h"/>
+      <FILE id="eqWbWJ" name="LockHolder.h" compile="0" resource="0" file="Source/LockHolder.h"/>
     </GROUP>
     <GROUP id="{A3166B9D-AC7F-4BA5-CBA5-0E13A41B257E}" name="Components">
       <FILE id="dldjzH" name="LevelMeter.h" compile="0" resource="0" file="Source/LevelMeter.h"/>

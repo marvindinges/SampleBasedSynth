@@ -11,7 +11,7 @@
 
 //==============================================================================
 SampleBasedSynthAudioProcessorEditor::SampleBasedSynthAudioProcessorEditor (SampleBasedSynthAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p), Thread("lock holder")
+    : AudioProcessorEditor (&p), audioProcessor (p)
 {
     getLookAndFeel().setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::white.withAlpha(0.0f));
     //loadSampleOneButton.onClick = [&]() { audioProcessor.loadSample(); };
@@ -95,6 +95,7 @@ SampleBasedSynthAudioProcessorEditor::SampleBasedSynthAudioProcessorEditor (Samp
     
     sampleLoader.addActionListener(this);
     preProcessor.addActionListener(this);
+    lockHolder.addActionListener(this);
 }
 
 SampleBasedSynthAudioProcessorEditor::~SampleBasedSynthAudioProcessorEditor()
@@ -154,7 +155,6 @@ void SampleBasedSynthAudioProcessorEditor::paint (juce::Graphics& g)
     //g.fillPath(p);
 
 
-    //add lock
     if (loadedSampleOne && !sampleLoader.isThreadRunning() && !preProcessor.isThreadRunning())
     {
         pointsOneLeft.clear();
@@ -295,7 +295,7 @@ void SampleBasedSynthAudioProcessorEditor::filesDropped(const juce::StringArray&
 {   
     if (!sampleLoader.isThreadRunning() && !preProcessor.isThreadRunning())
     {
-        holdLock(sampleLoader, preProcessor);
+        const juce::GenericScopedLock<juce::CriticalSection> myScopedLock(preProcessor);
 
         for (auto file : files)
         {
@@ -303,15 +303,15 @@ void SampleBasedSynthAudioProcessorEditor::filesDropped(const juce::StringArray&
             {
                 if (zoneOne.contains(x, y))
                 {
-                    sampleLoader.loadSample(file, fileBufferOne, "LS1");
                     pathOne = file;
+                    lockHolder.holdLockWhileRunning("HL_SL1", preProcessor, sampleLoader);
                     // start loading animation
                     return;
                 }
                 if (zoneTwo.contains(x, y))
                 {
-                    sampleLoader.loadSample(file, fileBufferTwo, "LS2");
                     pathTwo = file;
+                    lockHolder.holdLockWhileRunning("HL_SL2", preProcessor, sampleLoader);
                     // start loading animation
                     return;
                 }
@@ -338,13 +338,13 @@ void SampleBasedSynthAudioProcessorEditor::actionListenerCallback(const juce::St
         {
             if (loadedSampleTwo)
             {
-                holdLock(preProcessor, sampleLoader);
-                preProcessor.preProcessing(fileBufferOne, fileBufferTwo);
+                lockHolder.holdLockWhileRunning("HL_PP", sampleLoader, preProcessor);
             }
             else
             {
                 updater.updateSound(audioProcessor.getSynthOne(), audioProcessor.getEnvelopeParametesOne(), pathOne);
                 loadedSampleOne = true;
+                
                 repaint();
             }
         }
@@ -352,8 +352,7 @@ void SampleBasedSynthAudioProcessorEditor::actionListenerCallback(const juce::St
         {
             if (loadedSampleOne)
             {
-                holdLock(preProcessor, sampleLoader);
-                preProcessor.preProcessing(fileBufferOne, fileBufferTwo);
+                lockHolder.holdLockWhileRunning("HL_PP", sampleLoader, preProcessor);
             }
             else
             {
@@ -371,29 +370,23 @@ void SampleBasedSynthAudioProcessorEditor::actionListenerCallback(const juce::St
         updater.updateSound(audioProcessor.getSynthTwo(), audioProcessor.getEnvelopeParametesTwo(), pathTwo);
         repaint();
     }
+
+    if (message.contains("HL"))
+    {
+        if (message.contains("PP"))
+        {
+            preProcessor.preProcessing(fileBufferOne, fileBufferTwo);
+        }
+        if (message.contains("SL1"))
+        {
+            sampleLoader.loadSample(pathOne, fileBufferOne, "LS1");
+        }
+        if (message.contains("SL2"))
+        {
+            sampleLoader.loadSample(pathTwo, fileBufferTwo, "LS2");
+        }
+    }
     
 }
-
-void SampleBasedSynthAudioProcessorEditor::run()
-{
-    {
-        const juce::GenericScopedLock<juce::CriticalSection> myScopedLock(*lockingThread.get());
-        wait(200);
-        while (runningThread->isThreadRunning())
-        {
-            wait(200);
-        }
-        runningThread.release();
-        lockingThread.release();
-    }
-}
-
-void SampleBasedSynthAudioProcessorEditor::holdLock(juce::Thread& rt, juce::CriticalSection& lt)
-{
-    runningThread.reset(&rt);
-    lockingThread.reset(&lt);
-    startThread(Priority::background);
-}
-
 
 

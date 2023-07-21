@@ -42,13 +42,14 @@ public:
         formatReader.reset(nullptr);
 
         sampler.release();
+        //envelopeParaneters.release();
     }
 
     void updateSound(juce::Synthesiser& s, juce::ADSR::Parameters ep, juce::String p)
     {
 
         sampler.reset(&s);
-        envelopeParaneters.reset(&ep);
+        //envelopeParaneters.reset(&ep);
         path = p;
         startThread(Priority::highest);
     }

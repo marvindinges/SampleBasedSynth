@@ -51,7 +51,6 @@ public:
         startThread(Priority::normal);  
     }
 
-
 private:
 
     
