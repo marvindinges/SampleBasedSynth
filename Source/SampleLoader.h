@@ -31,16 +31,12 @@ public:
 
     void run() override
     {
-        sendActionMessage("loading sample");
-
         formatReader.reset(formatManger.createReaderFor(file));
 
         auto sampleLength = static_cast<int>(formatReader->lengthInSamples);
 
         buffer->setSize(2, sampleLength);
         formatReader->read(buffer.get(), 0, sampleLength, 0, true, true);
-
-        sendActionMessage("applying pre-processing");
        
         //TO-DO pre-processing
 

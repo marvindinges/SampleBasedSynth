@@ -36,9 +36,9 @@ public:
     void actionListenerCallback(const juce::String& message) override;
 
 private:
-    juce::Rectangle<float> sampleRec, outputRec, filterRec, envelopeRec, modRec, effectRec;
+    juce::Rectangle<float> sampleRec, outputRec, filterRec, envelopeRec, modRec, noiseRec;
     juce::Rectangle<float> zoneOne, zoneTwo;
-    juce::Rectangle<float> sampleOneBackground, sampleTwoBackground;
+    juce::Rectangle<float> sampleOneBackground, sampleTwoBackground, sampleFusionBackground;
    
     SampleLoader sampleLoader;
 
@@ -50,8 +50,20 @@ private:
     bool loadedSampleOne{ false };
     bool loadedSampleTwo{ false };
 
-
     Gui::LevelMeter levelMeterLeft, levelMeterRight;
+
+    juce::TextButton 
+        sampleOneInCnv, sampleOneAsCnv,sampleOneMute, sampleOneReverse,
+        sampleTwoInCnv, sampleTwoAsCnv, sampleTwoMute, sampleTwoReverse,
+        fusionSampleInCnv, fusionSampleAsCnv, fusionSampleMute, fusionSampleReverse;
+
+    juce::Slider sampleOneGain, sampleTwoGain, fusionSampleGain;
+
+    juce::ComboBox noiseType;
+    juce::Slider noiseGainSlider, combFilterSlider;
+    juce::TextButton noiseInCnv, noiseMute;
+
+    juce::Slider CnvMixSlider;
 
     juce::Slider lowPassSlider, highPassSlider, lowQ_Slider, highQ_Slider;
     juce::ComboBox lowCutSlopeBox, highCutSlopeBox;
@@ -62,10 +74,10 @@ private:
 
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>
-        lowPassSA, lowQ_SA, highpassSA, highQ_SA, attackSA, decaySA, sustainSA, relaseSA, curveSA, masterGainSA;
+        lowPassSA, lowQ_SA, highpassSA, highQ_SA, attackSA, decaySA, sustainSA, relaseSA, curveSA,s1GainSA, s2GainSA, fsGainSA, noiseGainSA, combSA, cnvMixSA, masterGainSA;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
-        lowCutSlopeCBA, highCutSlopeCBA;
+        lowCutSlopeCBA, highCutSlopeCBA, noiseTypeCBA;
 
     
     // This reference is provided as a quick way for your editor to
